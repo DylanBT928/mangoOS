@@ -19,7 +19,7 @@
 - QEMU
 - xorriso
 
-> **Note:** You can build the cross-compiler by following the [OSDev GCC Cross-Compiler Guide](https://wiki.osdev.org/GCC_Cross-Compiler) or watching this [video](https://www.youtube.com/watch?v=zBorEnGhPv8).
+> **Note:** You can build the cross-compiler by following the [OSDev GCC Cross-Compiler Guide](https://wiki.osdev.org/GCC_Cross-Compiler).
 
 ## References
 
