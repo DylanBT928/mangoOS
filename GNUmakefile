@@ -1,7 +1,9 @@
 .SUFFIXES:
 
+# This is the name of the final executable
 override OUTPUT := mangoOS
 
+# User controllable toolchain and toolchain pref
 TOOLCHAIN :=
 TOOLCHAIN_PREFIX :=
 ifneq ($(TOOLCHAIN),)
@@ -10,31 +12,45 @@ ifneq ($(TOOLCHAIN),)
 	endif
 endif
 
+# User controllable C compiler command
 ifneq ($(TOOLCHAIN_PREFIX),)
 	CC := $(TOOLCHAIN_PREFIX)gcc
 else
 	CC := cc
 endif
 
+# User controllable Linker command
 LD := $(TOOLCHAIN_PREFIX)ld
 
+# Defaults overrides for variables if using "llvm" as toolchain
 ifeq ($(TOOLCHAIN),llvm)
 	CC := clang
 	LD := ld.lld
 endif
 
+# User controllable C flags
 CFLAGS := -g -O2 -pipe
+
+# User controllable C preprocessor flags (none by default)
 CPPFLAGS :=
+
+# User controllable nasm flags
 NASMFLAGS := -g
+
+# User controllable Linker flags. We set none by default
 LDFLAGS :=
 
+# Check if CC is Clang
 override CC_IS_CLANG := $(shell ! $(CC) --version 2>/dev/null | grep -q '^Target: '; echo $$?)
 
+# If the C compiler is Clang, set the target as needed
 ifeq ($(CC_IS_CLANG),1)
 	override CC += \
 		-target x86_64-unknown-none-elf
 endif
 
+# DO NOT CHANGE -------------------------------------------------
+# Internal C flags
 override CFLAGS += \
 	-Wall \
 	-Wextra \
@@ -56,6 +72,7 @@ override CFLAGS += \
 	-mno-red-zone \
 	-mcmodel=kernel
 
+# Internal C preproccessor flags
 override CPPFLAGS := \
 	-I kernel \
 	-I bootloader/limine-protocol/include \
@@ -63,11 +80,13 @@ override CPPFLAGS := \
 	-MMD \
 	-MP
 
+# Internal NASM flags
 override NASMFLAGS := \
 	-f elf64 \
 	$(patsubst -g,-g -F dwarf,$(NASMFLAGS)) \
 	-Wall
 
+# Internal Linker flags
 override LDFLAGS += \
 	-m elf_x86_64 \
 	-nostdlib \
@@ -76,6 +95,10 @@ override LDFLAGS += \
 	--gc-sections \
 	-T linker.lds
 
+# DO NOT CHANGE ----------------------------------------------------------
+
+# User "find" to glob all *c, *s, and *asm files in the tree and obtain the
+# object and header dependency file names
 override SRCFILES := $(shell find -L kernel -type f 2>/dev/null | LC_ALL=C sort)
 override CFILES := $(filter %.c,$(SRCFILES))
 override ASFILES := $(filter %.S,$(SRCFILES))
@@ -83,27 +106,35 @@ override NASMFILES := $(filter %.asm,$(SRCFILES))
 override OBJ := $(addprefix obj/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o))
 override HEADER_DEPS := $(addprefix obj,/$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
+# Default target. Must come before header dependencies
 .PHONY: all
 all: bin/$(OUTPUT)
 
+# Header dependencies
 -include $(HEADER_DEPS)
 
+# Link rules for the final executable.
 bin/$(OUTPUT): GNUmakefile linker.lds $(OBJ)
 	mkdir -p "$(dir $@)"
 	$(LD) $(LDFLAGS) $(OBJ) -o $@
 
+# Compilation rules for *.c files.
 obj/%.c.o: %.c GNUmakefile
 	mkdir -p "$(dir $@)"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
+# Compilation rules for *.S files.
 obj/%.S.o: %.S GNUmakefile
 	mkdir -p "$(dir $@)"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
+# Compilation rules for *.asm (nasm) files.
 obj/%.asm.o: %.asm GNUmakefile
 	mkdir -p "$(dir $@)"
 	nasm $(NASMFLAGS) $< -o $@
+# -------------------------------------------------------------------------
 
+# Remove object files and the final executable.
 .PHONY: clean
 clean:
 	rm -rf bin obj
