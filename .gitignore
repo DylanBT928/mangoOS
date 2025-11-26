@@ -1,1 +1,6 @@
+bin/
+iso_root/
+obj/
+
+*.iso
 *.DS_Store

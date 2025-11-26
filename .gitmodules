@@ -1,0 +1,6 @@
+[submodule "bootloader/limine"]
+	path = bootloader/limine
+	url = https://codeberg.org/Limine/Limine.git
+[submodule "bootloader/limine-protocol"]
+	path = bootloader/limine-protocol
+	url = https://codeberg.org/Limine/limine-protocol
