@@ -21,6 +21,27 @@
 
 > **Note:** You can build the cross-compiler by following the [OSDev GCC Cross-Compiler Guide](https://wiki.osdev.org/GCC_Cross-Compiler).
 
+## Building
+The build process is automated by the GNUmakefile. 
+#### Build and Run
+```bash
+make run      # Generate the ISO and launch it in QEMU
+```
+
+#### Other Commands
+```bash
+make all      # Compile and link all source files
+make iso      # Create a bootable ISO
+make clean    # Remove all build artifacts
+```
+
+#### macOS
+```bash
+make all TOOLCHAIN=x86_64-elf
+make iso TOOLCHAIN=x86_64-elf
+make run TOOLCHAIN=x86_64-elf
+```
+
 ## References
 
 - [Operating Systems: Three Easy Pieces](https://pages.cs.wisc.edu/~remzi/OSTEP/)

@@ -22,11 +22,18 @@ endif
 # User controllable Linker command
 LD := $(TOOLCHAIN_PREFIX)ld
 
-# Defaults overrides for variables if using "llvm" as toolchain
+# Defaults overrides for variables if using "LLvm" as toolchain
 ifeq ($(TOOLCHAIN),llvm)
 	CC := clang
 	LD := ld.lld
 endif
+
+# Build variables
+KERNEL_DIR := kernel
+BOOTLOADER_DIR := bootloader
+ISO_DIR := iso_root
+ISO := mangoOS-x86_64.iso
+LINKER_SCRIPT := linker.lds
 
 # User controllable C flags
 CFLAGS := -g -O2 -pipe
@@ -104,10 +111,9 @@ override CFILES := $(filter %.c,$(SRCFILES))
 override ASFILES := $(filter %.S,$(SRCFILES))
 override NASMFILES := $(filter %.asm,$(SRCFILES))
 override OBJ := $(addprefix obj/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o))
-override HEADER_DEPS := $(addprefix obj,/$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
+override HEADER_DEPS := $(addprefix obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
 # Default target. Must come before header dependencies
-.PHONY: all
 all: bin/$(OUTPUT)
 
 # Header dependencies
@@ -132,9 +138,39 @@ obj/%.S.o: %.S GNUmakefile
 obj/%.asm.o: %.asm GNUmakefile
 	mkdir -p "$(dir $@)"
 	nasm $(NASMFLAGS) $< -o $@
+
 # -------------------------------------------------------------------------
 
-# Remove object files and the final executable.
-.PHONY: clean
+# ISO generation
+iso: bin/$(OUTPUT)
+	mkdir -p $(ISO_DIR)/boot
+	cp -v bin/$(OUTPUT) $(ISO_DIR)/boot/
+
+	mkdir -p $(ISO_DIR)/boot/limine
+	cp -v $(BOOTLOADER_DIR)/limine.conf \
+	      $(BOOTLOADER_DIR)/limine/limine-bios.sys \
+	      $(BOOTLOADER_DIR)/limine/limine-bios-cd.bin \
+	      $(BOOTLOADER_DIR)/limine/limine-uefi-cd.bin \
+	      $(ISO_DIR)/boot/limine/
+
+	mkdir -p $(ISO_DIR)/EFI/BOOT
+	cp -v $(BOOTLOADER_DIR)/limine/BOOTX64.EFI $(ISO_DIR)/EFI/BOOT/
+	cp -v $(BOOTLOADER_DIR)/limine/BOOTIA32.EFI $(ISO_DIR)/EFI/BOOT/
+
+	xorriso -as mkisofs -R -r -J \
+		-b boot/limine/limine-bios-cd.bin \
+		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		--efi-boot boot/limine/limine-uefi-cd.bin \
+		-efi-boot-part --efi-boot-image --protective-msdos-label \
+		$(ISO_DIR) -o $(ISO)
+
+	$(BOOTLOADER_DIR)/limine/limine bios-install $(ISO)
+
+# Run with QEMU
+run: iso
+	qemu-system-x86_64 -cdrom $(ISO)
+
 clean:
-	rm -rf bin obj
+	rm -rf obj bin $(ISO_DIR) $(ISO)
+
+.PHONY: iso run clean all
