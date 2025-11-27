@@ -82,6 +82,7 @@ override CFLAGS += \
 # Internal C preproccessor flags
 override CPPFLAGS := \
 	-I kernel \
+	-I kernel/include \
 	-I bootloader/limine-protocol/include \
 	$(CPPFLAGS) \
 	-MMD \
