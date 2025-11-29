@@ -2,5 +2,6 @@
 #define KERNEL_H
 
 #include "mem.h"
+#include "drivers/serial.h"
 
 #endif
